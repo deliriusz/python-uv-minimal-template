@@ -1,18 +1,14 @@
 PACKAGE="$1"
 CLI_PATH="src/${PACKAGE}/cli"
 
-uv init --package "$PACKAGE"
+uv init --name "$PACKAGE" --build-backend hatch --author-from git
+# uv init --package "$PACKAGE"
 uv add "typing-extensions>=4.0.0"
 
 mkdir -p "$CLI_PATH"
-cat << EOF >> pyproject.toml
+sed -i "/project.scripts/a cli = \"$PACKAGE.cli:main\"" pyproject.toml
 
-[project.scripts]
-cli = "$PACKAGE.cli:main"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 EOF
 
 touch "${CLI_PATH}/__init__.py"
