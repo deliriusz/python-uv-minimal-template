@@ -1,3 +1,8 @@
+if [ -z "$1" ]; then
+    echo "Package name required!!"
+    exit 1;
+fi
+
 PACKAGE="$1"
 CLI_PATH="src/${PACKAGE}/cli"
 
@@ -9,19 +14,32 @@ mkdir -p "$CLI_PATH"
 sed -i "/project.scripts/a cli = \"$PACKAGE.cli:main\"" pyproject.toml
 
 
+cat << EOF >> "pyproject.toml"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/${PACKAGE}"]
 EOF
 
-touch "${CLI_PATH}/__init__.py"
-cat << EOF >> "${CLI_PATH}/__main__.py"
+cat << EOF >> "${CLI_PATH}/__init__.py"
+"""
+$PACKAGE CLI Module
+
+Command-line interface for $PACKAGE.
+"""
+
+from ._cli import main
+
+__all__ = ['main']
+EOF
+
+cat << EOF >> "${CLI_PATH}/_cli.py"
 """
 $PACKAGE CLI
 """
 import argparse
 import json
-import os
 import sys
-import time
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 def format_output(data: Any, format_type: str = 'table') -> None:
     """Format and print output data."""
@@ -54,9 +72,9 @@ def cmd_example(args):
 
     if not args.all:
         response = {
-            active=args.active,
-            limit=args.limit,
-            cursor=args.cursor
+            "active": args.active,
+            "limit": args.limit,
+            "cursor": args.cursor
         }
 
         format_output(response, args.format)
@@ -69,9 +87,10 @@ def create_parser() -> argparse.ArgumentParser:
         epilog="""
 
 Examples:
-  cli api info
-  cli workflows list --active
-  cli executions list --status success --limit 10
+  cli example
+  cli example --active
+  cli example --limit 10
+  cli example --all
         """
     )
     
@@ -87,11 +106,11 @@ Examples:
     
     # EXAMPLES BELOW
     # API info command
-    api_parser = subparsers.add_parser('api', help='API operations')
-    api_subparsers = api_parser.add_subparsers(dest='api_command')
+    example_parser = subparsers.add_parser('example', help='Example operations')
+    example_subparsers = example_parser.add_subparsers(dest='example_command')
     
-    info_parser = api_subparsers.add_parser('info', help='Get API information')
-    info_parser.set_defaults(func=cmd_api_info)
+    info_parser = example_subparsers.add_parser('info', help='Get example information')
+    info_parser.set_defaults(func=cmd_example)
     
     # Workflows commands
     # workflows_parser = subparsers.add_parser('workflows', help='Workflow operations')
@@ -137,6 +156,7 @@ def _main() -> None:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 EOF
 
 uv run cli
